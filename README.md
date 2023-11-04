@@ -10,7 +10,7 @@ A program to determine paths between Wikipedia pages by navigating through their
 
 - [Samuel Morse](https://www.github.com/szammyboi)
 - [Joshua Labasbas](https://www.github.com/hoshbosh)
-- [Ethan Mayer](https://www.github.com/hoshbosh)
+- [Ethan Mayer]
 
 ## Installation
 
