@@ -1,1 +1,1 @@
-"# wikisolver" 
+# wikisolver
