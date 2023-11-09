@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -55,7 +55,7 @@ func GetPageSet(apcontinue string) AllPagesResponse {
 		log.Fatalln(err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -71,7 +71,6 @@ func GetPageSet(apcontinue string) AllPagesResponse {
 func GetAllPages() []Page {
 	var currentResponse AllPagesResponse
 	pages := make([]Page, 200000)
-
 	i := 0
 	for {
 		currentResponse = GetPageSet(currentResponse.Continue.ApContinue)
@@ -87,12 +86,10 @@ func GetAllPages() []Page {
 			i += 1
 		}
 	}
-
 	return pages
 }
 
 func GetLinkSet(page Page, plcontinue string) AllLinksResponse {
-	//https: //simple.wikipedia.org/w/api.php?action=query&prop=links&titles=Scooby-Doo&format=json&pllimit=100
 	base := "https://simple.wikipedia.org/w/api.php?action=query&prop=links&pllimit=500&format=json"
 	base = base + "&titles=" + url.QueryEscape(page.Title)
 	if plcontinue != "" {
@@ -104,7 +101,13 @@ func GetLinkSet(page Page, plcontinue string) AllLinksResponse {
 		log.Fatalln(err)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		//time.Sleep(1 * time.Second)
+		//fmt.Println(resp.Status, page.Title)
+		return GetLinkSet(page, plcontinue)
+	}
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -126,7 +129,6 @@ func GetAllLinks(pageArg Page) []string {
 	for {
 		currentResponse = GetLinkSet(pageArg, currentResponse.Continue.PlContinue)
 		for _, page := range currentResponse.Query.Pages {
-			//fmt.Println(page.Links)
 			for _, link := range page.Links {
 				links = append(links, link.Title)
 			}
