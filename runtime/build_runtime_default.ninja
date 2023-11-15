@@ -1,0 +1,37 @@
+# project build file
+# generated with premake ninja
+
+ninja_required_version = 1.6
+
+# core rules for default
+rule cc
+  command = gcc -Werror -Wuninitialized -m64 -DYAML_CPP_STATIC_DEFINE -Ivendor/yaml-cpp/include -MMD -MF $out.d -c -o $out $in
+  description = cc $out
+  depfile = $out.d
+  deps = gcc
+
+rule cxx
+  command = g++ -Werror -Wuninitialized -m64 -MMD -MP -m64 -std=c++20 -DYAML_CPP_STATIC_DEFINE -Ivendor/yaml-cpp/include -MMD -MF $out.d -c -o $out $in
+  description = cxx $out
+  depfile = $out.d
+  deps = gcc
+
+rule ar
+  command = ar rcs $out $in
+  description = ar $out
+
+rule link
+  command = g++ -o $out $in   -L/usr/lib64 -m64 -s
+  description = link $out
+
+rule custom_command
+  command = $CUSTOM_COMMAND
+  description = $CUSTOM_DESCRIPTION
+
+# build files
+build build/bin-int/default/default/runtime/main.o: cxx src/main.cpp
+
+# link executable
+build build/bin/default/runtime.exe: link build/bin-int/default/default/runtime/main.o  build/bin/default/yaml-cpp.lib
+
+build runtime_default: phony build/bin/default/runtime.exe
