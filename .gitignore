@@ -3,3 +3,4 @@
 *.bin
 runtime/build
 *.ninja
+.vscode/
