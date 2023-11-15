@@ -50,7 +50,7 @@ project "runtime"
 
     defines "YAML_CPP_STATIC_DEFINE"
     
-    --symbols "on"
+    symbols "on"
     buildoptions {"-Werror", "-Wuninitialized"}
 
     includedirs 

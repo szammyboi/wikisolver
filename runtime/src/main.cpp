@@ -3,71 +3,30 @@
 #include <cassert>
 #include <unordered_map>
 #include <map>
-
-struct Page
-{
-    //std::string title;
-    int id;
-};
-
-class Graph {
-public:
-    Graph() = default;
-    ~Graph() = default;
-
-    int Size();
-    void AddPage(int id);
-private:
-    std::unordered_map<int, Page> m_Graph;
-    unsigned int m_VertexCount = 0;
-};
-
-void Graph::AddPage(int id)
-{
-    // should do my attempt to insert ting
-    m_Graph[id] = Page{};
-    m_VertexCount += 1;
-}
-
-int Graph::Size()
-{
-    return m_VertexCount;
-}
-
-void PrintType(YAML::Node node)
-{
-    switch (node.Type()) {
-        case YAML::NodeType::Null: 
-            std::cout << "NULL" << std::endl;
-            break;
-        case YAML::NodeType::Scalar:
-            std::cout << "SCALAR" << std::endl;
-            break;
-        case YAML::NodeType::Sequence:
-            std::cout << "SEQUENCE" << std::endl;
-            break;
-        case YAML::NodeType::Map:
-            std::cout << "MAP" << std::endl;
-            break;
-        case YAML::NodeType::Undefined:
-            std::cout << "UNDEFINED" << std::endl;
-            break;
-        default:
-            break;
-    }
-}
+#include <fstream>
+#include <vector>
 
 int main()
 {
-    Graph graph;
-    YAML::Node config = YAML::LoadFile("data2.yaml");
-    //auto map = config.as<std::map<std::string, YAML::Node>>();
-    std::cout << "BRUH" << config.size() << std::endl;
+    std::map<uint32_t, std::vector<uint32_t>> data;
+    std::ifstream stream("data_collection/data.bin", std::ios::binary);
+    uint32_t total_count;
+    stream.read((char*)&total_count, sizeof(uint32_t));
 
-    for(YAML::const_iterator it=config.begin(); it != config.end();++it) {
-        std::string key = it->first.as<std::string>();       // <- key
-        graph.AddPage(it->second["pageid"].as<int>());
+    std::cout << total_count << " pages" << std::endl;
+
+    while (total_count--)
+    {
+        uint32_t from_id;
+        uint32_t link_count;
+        stream.read((char*)&from_id, sizeof(uint32_t));
+        stream.read((char*)&link_count, sizeof(uint32_t));
+        data[from_id] = std::vector<uint32_t>();
+        data[from_id].reserve(link_count);
+
+        for (int i = 0; i < link_count; i++)
+            stream.read((char*)&data[from_id][i], sizeof(uint32_t));
     }
 
-    std::cout << graph.Size() << std::endl;
+    std::cout << "Loaded all data!" << std::endl;
 }
