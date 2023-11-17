@@ -10,6 +10,21 @@
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 
+std::pair<std::string, uint32_t> SearchPage(const std::string& title)
+{
+    auto params = cpr::Parameters{
+        {"q", title},
+    };
+
+    //https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=Nelson%20Mandela&utf8=&format=json&redirects=resolve
+    cpr::Response r = cpr::Get(cpr::Url{"https://api.wikimedia.org/core/v1/wikipedia/simple/search/title"}, params);
+    std::cout << r.url << std::endl;
+    auto json = nlohmann::json::parse(r.text);
+    std::string real_title = json["pages"][0]["key"].get<std::string>();
+    uint32_t id = json["pages"][0]["id"].get<uint32_t>();
+    return {real_title, id};
+}
+
 void PrintPageTitle(uint32_t pageid)
 {
     auto params = cpr::Parameters{
@@ -21,7 +36,7 @@ void PrintPageTitle(uint32_t pageid)
 
     cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
     auto json = nlohmann::json::parse(r.text);
-    std::cout << json["query"]["pages"][0]["title"] << std::endl;
+    std::cout << json["query"]["pages"][0]["title"].get<std::string>() << std::endl;
 }
 
 int main()
@@ -52,9 +67,27 @@ int main()
 
     std::cout << "Loaded all data!" << std::endl;
 
-    PrintPageTitle(1);
-    std::cout << data[1].size() << std::endl;
-    for (auto& link : data[1]) {
+    
+    auto [title, id] = SearchPage("scobby doo");
+    std::cout << title << " links to: " << std::endl;
+    for  (auto& link : data[id]) {
+        std::cout << " ";
         PrintPageTitle(link);
     }
 }
+
+/*
+void Search(const std::string& title)
+{
+    auto params = cpr::Parameters{
+        {"action", "opensearch"},
+        {"search", url_encode(title)},
+        {"limit", "10"},
+        {"format", "json"},
+        {"namespace", "0"}
+    };
+    cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
+    auto json = nlohmann::json::parse(r.text);
+    std::cout << json << std::endl;
+}
+*/

@@ -3,7 +3,7 @@
 require "ninja"
 require "export-compile-commands"
 
-workspace "COP3530"
+workspace "WikipediaSolver"
     configurations {"default", "test"}
     targetdir "build"
     architecture "x86_64"
@@ -55,7 +55,7 @@ project "cpr"
     targetdir ("build/bin/" .. outputdir)
     objdir ("build/bin-int/" .. outputdir)
 
-    defines { "CPR_FORCE_WINSSL_BACKEND", "CURL_STATICLIB"}
+    defines { "CPR_FORCE_WINSSL_BACKEND", "BUILDING_LIBCURL", "CURL_STATICLIB"}
 
     --symbols "on"
     buildoptions {"-Werror", "-Wuninitialized"}
@@ -132,8 +132,8 @@ project "runtime"
         "Ws2_32",
         "Crypt32",
         "bcrypt",
+        "cpr",
         "curl",
-        "cpr"
     }
 
     files 
