@@ -5,6 +5,24 @@
 #include <map>
 #include <fstream>
 #include <vector>
+#include <string>
+
+#include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
+
+void PrintPageTitle(uint32_t pageid)
+{
+    auto params = cpr::Parameters{
+        {"action", "query"},
+        {"pageids", std::to_string(pageid)},
+        {"format", "json"},
+        {"formatversion", "2"}
+    };
+
+    cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
+    auto json = nlohmann::json::parse(r.text);
+    std::cout << json["query"]["pages"][0]["title"] << std::endl;
+}
 
 int main()
 {
@@ -24,9 +42,19 @@ int main()
         data[from_id] = std::vector<uint32_t>();
         data[from_id].reserve(link_count);
 
-        for (int i = 0; i < link_count; i++)
-            stream.read((char*)&data[from_id][i], sizeof(uint32_t));
+        for (int i = 0; i < link_count; i++) {
+            uint32_t value;
+            stream.read((char*)&value, sizeof(uint32_t));
+            data[from_id].push_back(value);
+        }
+           
     }
 
     std::cout << "Loaded all data!" << std::endl;
+
+    PrintPageTitle(1);
+    std::cout << data[1].size() << std::endl;
+    for (auto& link : data[1]) {
+        PrintPageTitle(link);
+    }
 }
