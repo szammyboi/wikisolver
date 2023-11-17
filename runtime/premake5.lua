@@ -55,7 +55,7 @@ project "cpr"
     targetdir ("build/bin/" .. outputdir)
     objdir ("build/bin-int/" .. outputdir)
 
-    defines { "CPR_FORCE_WINSSL_BACKEND", "BUILDING_LIBCURL", "CURL_STATICLIB"}
+    defines { "CPR_FORCE_WINSSL_BACKEND", "CURL_STATICLIB"}
 
     --symbols "on"
     buildoptions {"-Werror", "-Wuninitialized"}
