@@ -17,7 +17,17 @@ A program to determine paths between Wikipedia pages by navigating through their
 TBD
 
 ```bash
-  git clone https://github.com/szammyboi/wikisolver.git
+  git clone https://github.com/szammyboi/wikisolver.git --recursive
+```
+
+## Running
+```
+// Run the data collection to build the binary wikipedia file
+cd data_collection
+go get
+go run main.go
+
+run.bat
 ```
     
 ## Mock Interface
