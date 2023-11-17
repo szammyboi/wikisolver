@@ -88,6 +88,35 @@ std::vector<uint32_t> FindPath(std::map<uint32_t, std::vector<uint32_t>>& data, 
     return std::vector<uint32_t>();
 }
 
+std::map<uint32_t, std::string> GetTitles(std::vector<uint32_t>& ids)
+{
+    std::map<uint32_t, std::string> result;
+    std::string pageids = std::to_string(ids[0]);
+    for (int i = 1; i < ids.size(); i++)
+    {
+        pageids += "|";
+        pageids += std::to_string(ids[i]);
+    }
+
+    auto params = cpr::Parameters{
+        {"action", "query"},
+        {"pageids", pageids},
+        {"format", "json"},
+        {"formatversion", "2"}
+    };
+
+    cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
+    auto json = nlohmann::json::parse(r.text);
+
+    for (auto entry : json["query"]["pages"])
+    {
+        uint32_t id = entry["pageid"].get<uint32_t>();
+        result[id] = entry["title"].get<std::string>();
+    }
+
+    return result;
+}
+
 int main()
 {
     std::map<uint32_t, std::vector<uint32_t>> data;
@@ -128,9 +157,10 @@ int main()
     auto path = FindPath(data, id, id2);
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Path Tracing Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "ms" << std::endl;
-    for (auto id : path)
+    
+    std::map<uint32_t, std::string> titles = GetTitles(path);
+    for (uint32_t id : path)
     {
-        std::cout << "> ";
-        PrintPageTitle(id);
+        std::cout << "> " << titles[id] << std::endl;
     }
 }
