@@ -21,7 +21,7 @@ public:
 private:
     WikipediaSolver() = default;
     void LoadDataImpl(const std::string& filepath);
-    std::unordered_map<uint32_t, std::string> GetTitlesImpl(std::vector<uint32_t>& ids);
+    std::vector<std::string> GetTitlesImpl(std::vector<uint32_t>& ids);
     std::vector<SearchResult> SearchTitleImpl(const std::string& search_string);
     std::vector<uint32_t> FindPathImpl(uint32_t from, uint32_t to);
 private:

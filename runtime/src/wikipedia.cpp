@@ -29,14 +29,9 @@ void WikipediaSolver::LoadDataImpl(const std::string& filepath)
         uint32_t link_count;
         stream.read((char*)&from_id, sizeof(uint32_t));
         stream.read((char*)&link_count, sizeof(uint32_t));
-        m_Graph[from_id] = std::vector<uint32_t>();
-        m_Graph[from_id].reserve(link_count);
+        m_Graph[from_id] = std::vector<uint32_t>(link_count);
 
-        for (int i = 0; i < link_count; i++) {
-            uint32_t value;
-            stream.read((char*)&value, sizeof(uint32_t));
-            m_Graph[from_id].push_back(value);
-        }
+        stream.read((char*)&m_Graph[from_id][0], sizeof(uint32_t)*link_count);
 
         if (from_id > m_MaxID) m_MaxID = from_id;
     }
@@ -47,30 +42,28 @@ void WikipediaSolver::LoadDataImpl(const std::string& filepath)
 
 
 // needs error handling
-std::unordered_map<uint32_t, std::string> WikipediaSolver::GetTitlesImpl(std::vector<uint32_t>& ids)
+std::vector<std::string> WikipediaSolver::GetTitlesImpl(std::vector<uint32_t>& ids)
 {
-    std::unordered_map<uint32_t, std::string> result;
+    std::vector<std::string> result(ids.size());
+    
     std::string pageids = std::to_string(ids[0]);
     for (int i = 1; i < ids.size(); i++)
-    {
-        pageids += "|";
-        pageids += std::to_string(ids[i]);
-    }
+        pageids = pageids + "|" + std::to_string(ids[i]);
 
     auto params = cpr::Parameters{
         {"action", "query"},
         {"pageids", pageids},
         {"format", "json"},
-        {"formatversion", "2"}
+        {"formatversion", "1"}
     };
 
     cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
     auto json = nlohmann::json::parse(r.text);
 
-    for (auto entry : json["query"]["pages"])
+    for (int i = 0; i < ids.size(); i++)
     {
-        uint32_t id = entry["pageid"].get<uint32_t>();
-        result[id] = entry["title"].get<std::string>();
+        auto entry = json["query"]["pages"][std::to_string(ids[i])];
+        result[i] = entry["title"].get<std::string>();
     }
 
     return result;
@@ -99,7 +92,7 @@ std::vector<SearchResult> WikipediaSolver::SearchTitleImpl(const std::string& se
         std::string key = entry["key"].get<std::string>();
         std::string url = "https://simple.wikipedia.org/wiki/" + key;
         uint32_t id = entry["id"].get<uint32_t>();
-        result.push_back({title, id, url});
+        result.emplace_back(title, id, url);
     }
 
     return result;
@@ -109,18 +102,13 @@ std::vector<std::string> WikipediaSolver::FindPath(const std::string& from, cons
 {
     std::vector<std::string> result;
     WikipediaSolver& instance = Get();
-    std::vector<SearchResult> from_results = SearchTitle(from);
-    std::vector<SearchResult> to_results = SearchTitle(to);
+    std::vector<SearchResult> from_results = instance.SearchTitleImpl(from);
+    std::vector<SearchResult> to_results = instance.SearchTitleImpl(to);
 
     if (from_results.size() == 0 || to_results.size() == 0) throw std::runtime_error("Invalid Search!");
     
     std::vector<uint32_t> path = instance.FindPathImpl(from_results[0].id, to_results[0].id);
-    std::unordered_map<uint32_t, std::string> titles = instance.GetTitlesImpl(path);
-
-    for (uint32_t node : path)
-        result.push_back(titles[node]);
-
-    return result;
+    return instance.GetTitlesImpl(path);
 }
 
 // link pseudocode
