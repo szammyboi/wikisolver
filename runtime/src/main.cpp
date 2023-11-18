@@ -12,6 +12,12 @@
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 
+#include "wikipedia.h"
+
+
+
+// singleton
+
 std::pair<std::string, uint32_t> SearchPage(const std::string& title)
 {
     auto params = cpr::Parameters{
@@ -40,7 +46,7 @@ void PrintPageTitle(uint32_t pageid)
     std::cout << json["query"]["pages"][0]["title"].get<std::string>() << std::endl;
 }
 
-std::vector<uint32_t> FindPath(std::map<uint32_t, std::vector<uint32_t>>& data, uint32_t from, uint32_t to)
+std::vector<uint32_t> FindPath(std::unordered_map<uint32_t, std::vector<uint32_t>>& data, uint32_t from, uint32_t to)
 {
     // maybe optimized visited to be o(1    )
     std::queue<uint32_t> queue;
@@ -119,7 +125,16 @@ std::map<uint32_t, std::string> GetTitles(std::vector<uint32_t>& ids)
 
 int main()
 {
-    std::map<uint32_t, std::vector<uint32_t>> data;
+    WikipediaSolver::LoadData("data_collection/data.bin");
+    
+    std::vector<std::string> p = WikipediaSolver::FindPath("scooby doo", "icarly");
+    
+    for (auto& title : p)
+        std::cout << title << std::endl;
+}
+
+/*
+    std::unordered_map<uint32_t, std::vector<uint32_t>> data;
     std::ifstream stream("data_collection/data.bin", std::ios::binary);
     uint32_t total_count;
     stream.read((char*)&total_count, sizeof(uint32_t));
@@ -142,7 +157,6 @@ int main()
         }
            
     }
-
     std::cout << "Loaded all data!" << std::endl;
 
     std::string from;
@@ -153,14 +167,12 @@ int main()
     auto [title, id] = SearchPage(from);
     auto [title2, id2] = SearchPage(to);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    auto path = FindPath(data, id, id2);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Path Tracing Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << "ms" << std::endl;
     
+    auto path = FindPath(data, id, id2);
     std::map<uint32_t, std::string> titles = GetTitles(path);
+    
     for (uint32_t id : path)
     {
         std::cout << "> " << titles[id] << std::endl;
     }
-}
+    */
