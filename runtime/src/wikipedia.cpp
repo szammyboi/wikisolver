@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
+#include <thread>
+#include <future>
 
 WikipediaSolver& WikipediaSolver::Get()
 {
@@ -102,8 +104,12 @@ std::vector<std::string> WikipediaSolver::FindPath(const std::string& from, cons
 {
     std::vector<std::string> result;
     WikipediaSolver& instance = Get();
-    std::vector<SearchResult> from_results = instance.SearchTitleImpl(from);
-    std::vector<SearchResult> to_results = instance.SearchTitleImpl(to);
+
+    std::future<std::vector<SearchResult>> from_results_async = std::async(SearchTitle, from);
+    std::future<std::vector<SearchResult>> to_results_async = std::async(SearchTitle, to);
+    
+    std::vector<SearchResult> from_results = from_results_async.get();
+    std::vector<SearchResult> to_results = to_results_async.get();
 
     if (from_results.size() == 0 || to_results.size() == 0) throw std::runtime_error("Invalid Search!");
     
@@ -122,12 +128,12 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
 
     queue.push(from);
     visited[from] = 1;
-    info[from] = {-1, 0};
+    info[from] = {0, 0};
 
+    bool found = false;
     int depth = 0;
-	while (!queue.empty())
+	while (!queue.empty() && !found)
 	{
-        bool found = false;
 		int length = queue.size();
 		while (length--) 
         {
@@ -135,6 +141,7 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
 			queue.pop();
 			if (current == to) 
             {
+                std::cout << depth << std::endl;
                 found = true;
                 break;
             }
@@ -148,8 +155,9 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
             }
 		}
         depth++;
-        if (found) break;
 	}
+
+    if (!found) return path;
 
     path.resize(depth);
     uint32_t current = to;
