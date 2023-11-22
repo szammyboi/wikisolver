@@ -64,7 +64,7 @@ project "cpr"
     {
         "vendor/curl/include",
         "vendor/cpr/include",
-        "vendor/cpr/include/custom",
+        "vendor/cpr/include/custom"
     }
 
     files
@@ -72,10 +72,50 @@ project "cpr"
         "vendor/cpr/cpr/**.cpp"
     }
 
-project "yaml-cpp"
+project "glfw"
+	kind "StaticLib"
+	language "C"
+
+	outputdir = "%{cfg.buildcfg}"
+
+    targetdir ("build/bin/" .. outputdir)
+    objdir ("build/bin-int/" .. outputdir)
+
+	files
+	{
+		"vendor/glfw/include/GLFW/glfw3.h",
+		"vendor/glfw/include/GLFW/glfw3native.h",
+		"vendor/glfw/src/glfw_config.h",
+		"vendor/glfw/src/context.c",
+		"vendor/glfw/src/init.c",
+		"vendor/glfw/src/input.c",
+		"vendor/glfw/src/monitor.c",
+		"vendor/glfw/src/vulkan.c",
+		"vendor/glfw/src/window.c",
+        "vendor/glfw/src/win32_init.c",
+        "vendor/glfw/src/win32_joystick.c",
+        "vendor/glfw/src/win32_monitor.c",
+        "vendor/glfw/src/win32_time.c",
+        "vendor/glfw/src/win32_module.c",
+        "vendor/glfw/src/win32_thread.c",
+        "vendor/glfw/src/win32_window.c",
+        "vendor/glfw/src/wgl_context.c",
+        "vendor/glfw/src/egl_context.c",
+        "vendor/glfw/src/osmesa_context.c"
+	}
+
+    systemversion "latest"
+    staticruntime "On"
+
+    defines
+    {
+        "_GLFW_WIN32",
+        "_CRT_SECURE_NO_WARNINGS"
+    }
+
+project "glad"
     kind "StaticLib"
-    language "C++"
-    cppdialect "C++20"
+    language "C"
     staticruntime "off"
 
     outputdir = "%{cfg.buildcfg}"
@@ -83,21 +123,53 @@ project "yaml-cpp"
     targetdir ("build/bin/" .. outputdir)
     objdir ("build/bin-int/" .. outputdir)
 
-    --symbols "on"
-    buildoptions {"-Werror", "-Wuninitialized"}
-
-    defines {"YAML_CPP_STATIC_DEFINE"}
+    files
+    {
+        "vendor/glad/include/glad/gl.h",
+        "vendor/glad/include/KHR/khrplatform.h",
+        "vendor/glad/src/gl.c"
+    }
 
     includedirs
     {
-        "vendor/yaml-cpp/include",
+        "vendor/glad/include"
     }
 
-    files
+    systemversion "latest"
+
+project "imgui"
+	kind "StaticLib"
+	language "C++"
+
+	outputdir = "%{cfg.buildcfg}"
+
+    targetdir ("build/bin/" .. outputdir)
+    objdir ("build/bin-int/" .. outputdir)
+
+    includedirs 
     {
-        "vendor/yaml-cpp/src/**.cpp",
-        "vendor/yaml-cpp/src/**.h",
+        "vendor/imgui",
+        "vendor/glad/include",
+        "vendor/glfw/include"
     }
+
+	files
+	{
+        "vendor/imgui/*.cpp",
+		"vendor/imgui/backends/imgui_impl_glfw.cpp",
+		"vendor/imgui/backends/imgui_impl_opengl3.cpp"
+	}
+
+    defines 
+    {
+        "_IMGUI_WIN32",
+		"_CRT_SECURE_NO_WARNINGS",
+        "IMGUI_IMPL_OPENGL_LOADER_GLAD"
+    }
+
+    systemversion "latest"
+    cppdialect "C++20"
+    staticruntime "On"
 
     -- should be 14 probs
 project "runtime"
@@ -111,18 +183,21 @@ project "runtime"
     targetdir ("build/bin/" .. outputdir)
     objdir ("build/bin-int/" .. outputdir)
 
-    defines {"YAML_CPP_STATIC_DEFINE", "BUILDING_LIBCURL"}
+    defines {"BUILDING_LIBCURL"}
 
     --symbols "on"
     buildoptions {"-Werror", "-Wuninitialized"}
 
     includedirs 
     {
-        "vendor/yaml-cpp/include",
         "vendor/curl/include",
         "vendor/cpr/include",
         "vendor/cpr/include/custom",
-        "vendor/json/include"
+        "vendor/json/include",
+        "vendor/glfw/include",
+        "vendor/glad/include",
+        "vendor/imgui",
+        "vendor/imgui/backends"
     }
 
     -- normaliz, wdldap32
@@ -134,6 +209,11 @@ project "runtime"
         "bcrypt",
         "cpr",
         "curl",
+        "opengl32",
+        "gdi32",
+        "imgui",
+        "glad",
+        "glfw",
     }
 
     files 

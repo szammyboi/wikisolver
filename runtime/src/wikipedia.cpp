@@ -47,6 +47,8 @@ void WikipediaSolver::LoadDataImpl(const std::string& filepath)
 std::vector<std::string> WikipediaSolver::GetTitlesImpl(std::vector<uint32_t>& ids)
 {
     std::vector<std::string> result(ids.size());
+
+    if (ids.empty()) return result;
     
     std::string pageids = std::to_string(ids[0]);
     for (int i = 1; i < ids.size(); i++)
@@ -114,6 +116,8 @@ std::vector<std::string> WikipediaSolver::FindPath(const std::string& from, cons
     if (from_results.size() == 0 || to_results.size() == 0) throw std::runtime_error("Invalid Search!");
     
     std::vector<uint32_t> path = instance.FindPathImpl(from_results[0].id, to_results[0].id);
+    if (path.empty())
+        return result;
     return instance.GetTitlesImpl(path);
 }
 
@@ -141,7 +145,6 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
 			queue.pop();
 			if (current == to) 
             {
-                std::cout << depth << std::endl;
                 found = true;
                 break;
             }
@@ -168,4 +171,31 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
     }
 
     return path;
+}
+
+std::vector<std::string> WikipediaSolver::RandomRun()
+{
+    WikipediaSolver& instance = Get();
+    return instance.RandomRunImpl();
+}
+
+std::vector<std::string> WikipediaSolver::RandomRunImpl()
+{
+    auto params = cpr::Parameters{
+        {"action", "query"},
+        {"list", "random"},
+        {"rnnamespace", "0"},
+        {"rnlimit", "2"},
+        {"format", "json"}
+    };
+
+    cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
+    auto json = nlohmann::json::parse(r.text);
+
+    uint32_t id1 = json["query"]["random"][0]["id"].get<uint32_t>();
+    uint32_t id2 = json["query"]["random"][1]["id"].get<uint32_t>();
+
+
+    auto path = FindPathImpl(id1, id2);
+    return GetTitlesImpl(path);
 }
