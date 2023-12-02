@@ -1,10 +1,16 @@
 #include "wikipedia.h"
-#include <fstream>
-#include <iostream>
-#include <cpr/cpr.h>
+
+#include <levenshtein-sse.hpp>
 #include <nlohmann/json.hpp>
+#include <cpr/cpr.h>
+
+#include <iostream>
+#include <fstream>
+
 #include <thread>
 #include <future>
+
+#include <queue>
 
 WikipediaSolver& WikipediaSolver::Get()
 {
@@ -24,103 +30,95 @@ void WikipediaSolver::LoadDataImpl(const std::string& filepath)
     uint32_t total_count;
     stream.read((char*)&total_count, sizeof(uint32_t));
 
+
     m_Graph.reserve(total_count);
     for (int _ = 0; _ < total_count; _++)
     {
+        m_Vertices++;
         uint32_t from_id;
+        uint32_t title_length;
         uint32_t link_count;
-        stream.read((char*)&from_id, sizeof(uint32_t));
-        stream.read((char*)&link_count, sizeof(uint32_t));
-        m_Graph[from_id] = std::vector<uint32_t>(link_count);
 
-        stream.read((char*)&m_Graph[from_id][0], sizeof(uint32_t)*link_count);
+        stream.read((char*)&from_id, sizeof(uint32_t));
+        stream.read((char*)&title_length, sizeof(uint32_t));
+
+        m_Graph[from_id] = Article{from_id};
+
+        std::string& title = m_Graph[from_id].title;
+        title.resize(title_length);
+
+        for (int i = 0; i < title_length; i++)
+            stream.read(&title.data()[i], sizeof(char));
+
+        stream.read((char*)&link_count, sizeof(uint32_t));
+        m_Graph[from_id].links = std::vector<uint32_t>(link_count);
+
+        m_Edges += link_count;
+
+        stream.read((char*)&m_Graph[from_id].links[0], sizeof(uint32_t)*link_count);
 
         if (from_id > m_MaxID) m_MaxID = from_id;
+
+        m_Titles.emplace_back(title, from_id);
     }
+    // bad
+    std::sort(m_Titles.begin(), m_Titles.end(), [](auto &left, auto &right) {
+        return left.first < right.first;
+    });
 
     if (m_Graph.size() != total_count)
         throw std::runtime_error("Failed to load in all data!");
 }
 
 
-// needs error handling
-std::vector<std::string> WikipediaSolver::GetTitlesImpl(std::vector<uint32_t>& ids)
+std::vector<const Article*> WikipediaSolver::SearchTitle(const std::string& search_string, int limit)
 {
-    std::vector<std::string> result(ids.size());
-    
-    std::string pageids = std::to_string(ids[0]);
-    for (int i = 1; i < ids.size(); i++)
-        pageids = pageids + "|" + std::to_string(ids[i]);
+    std::vector<const Article*> result;
 
-    auto params = cpr::Parameters{
-        {"action", "query"},
-        {"pageids", pageids},
-        {"format", "json"},
-        {"formatversion", "1"}
-    };
+    typedef std::pair<float, uint32_t> Score;
+    std::priority_queue<Score> queue;
 
-    cpr::Response r = cpr::Get(cpr::Url{"https://simple.wikipedia.org/w/api.php"}, params);
-    auto json = nlohmann::json::parse(r.text);
+    auto s = std::string(search_string);
+    std::transform(s.begin(), s.end(), s.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+    WikipediaSolver& instance = Get();
 
-    for (int i = 0; i < ids.size(); i++)
+    // would rather not iterate over the entire array
+    // because its sorted (some sort of binary search to find first instance of the first char)
+    for (auto& pair : instance.m_Titles)
     {
-        auto entry = json["query"]["pages"][std::to_string(ids[i])];
-        result[i] = entry["title"].get<std::string>();
+        if (std::tolower(pair.first[0]) != std::tolower(search_string[0])) continue;
+        if (pair.first.length() < search_string.length()) continue;
+
+        std::string lowercase_title = std::string(pair.first);
+        std::transform(lowercase_title.begin(), lowercase_title.end(), lowercase_title.begin(),
+        [](unsigned char c){ return std::tolower(c); });
+
+        float score = (float)levenshteinSSE::levenshtein(search_string.begin(), search_string.end(), lowercase_title.begin(), lowercase_title.begin() + search_string.size());
+        //score += 0.1*abs(((int)search_string.length())-((int)pair.first.length()));
+        if (queue.size() == limit && score > queue.top().first)
+            continue;
+        queue.emplace(score, pair.second);
+        if (queue.size() > limit)
+            queue.pop();
+    }
+
+    result.resize(queue.size());
+
+    int index = result.size()-1;
+    while (!queue.empty())
+    {
+        auto [score, key] = queue.top();
+        result[index--] = &instance.m_Graph[key];
+        queue.pop();
     }
 
     return result;
 }
 
-std::vector<SearchResult> WikipediaSolver::SearchTitle(const std::string& search_string)
+std::vector<const Article*> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
 {
-    WikipediaSolver& instance = Get();
-    return instance.SearchTitleImpl(search_string);
-}
-
-std::vector<SearchResult> WikipediaSolver::SearchTitleImpl(const std::string& search_string)
-{
-    std::vector<SearchResult> result;
-    auto params = cpr::Parameters{
-        {"q", search_string},
-    };
-
-    //https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=Nelson%20Mandela&utf8=&format=json&redirects=resolve
-    cpr::Response r = cpr::Get(cpr::Url{"https://api.wikimedia.org/core/v1/wikipedia/simple/search/title"}, params);
-    auto json = nlohmann::json::parse(r.text);
-
-    for (auto& entry : json["pages"])
-    {
-        std::string title = entry["title"].get<std::string>();
-        std::string key = entry["key"].get<std::string>();
-        std::string url = "https://simple.wikipedia.org/wiki/" + key;
-        uint32_t id = entry["id"].get<uint32_t>();
-        result.emplace_back(title, id, url);
-    }
-
-    return result;
-}
-
-std::vector<std::string> WikipediaSolver::FindPath(const std::string& from, const std::string& to)
-{
-    std::vector<std::string> result;
-    WikipediaSolver& instance = Get();
-
-    std::future<std::vector<SearchResult>> from_results_async = std::async(SearchTitle, from);
-    std::future<std::vector<SearchResult>> to_results_async = std::async(SearchTitle, to);
-    
-    std::vector<SearchResult> from_results = from_results_async.get();
-    std::vector<SearchResult> to_results = to_results_async.get();
-
-    if (from_results.size() == 0 || to_results.size() == 0) throw std::runtime_error("Invalid Search!");
-    
-    std::vector<uint32_t> path = instance.FindPathImpl(from_results[0].id, to_results[0].id);
-    return instance.GetTitlesImpl(path);
-}
-
-// link pseudocode
-std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
-{
-    std::vector<uint32_t> path;
+    std::vector<const Article*> path;
 
     std::queue<uint32_t> queue;
     std::vector<bool> visited(m_MaxID+1);
@@ -141,12 +139,11 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
 			queue.pop();
 			if (current == to) 
             {
-                std::cout << depth << std::endl;
                 found = true;
                 break;
             }
 
-			for (uint32_t link : m_Graph[current])
+			for (uint32_t link : m_Graph[current].links)
             {
                 if (visited[link] == 1) continue;
                 queue.push(link);
@@ -163,9 +160,30 @@ std::vector<uint32_t> WikipediaSolver::FindPathImpl(uint32_t from, uint32_t to)
     uint32_t current = to;
     for (int i = 1; i <= depth; i++)
     {   
-        path[depth-i] = current;
+        path[depth-i] = &m_Graph.at(current);
         current = info[current].second;
     }
 
     return path;
+}
+
+std::vector<const Article*> WikipediaSolver::FindPath(const std::string& from, const std::string& to)
+{
+    WikipediaSolver& instance = Get();
+
+    std::future<std::vector<const Article*>> from_results_async = std::async(SearchTitle, from, 5);
+    std::future<std::vector<const Article*>> to_results_async = std::async(SearchTitle, to, 5);
+
+    std::vector<const Article*> from_results = from_results_async.get();
+    std::vector<const Article*> to_results = to_results_async.get();
+
+    if (from_results.size() == 0 || to_results.size() == 0) throw std::runtime_error("Invalid Search!");
+    
+    return instance.FindPathImpl(from_results[0]->id, to_results[0]->id);
+}
+
+float WikipediaSolver::Density()
+{
+    WikipediaSolver& instance = Get();
+    return (float)instance.m_Edges / instance.m_Vertices;
 }

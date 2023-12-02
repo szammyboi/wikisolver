@@ -8,13 +8,40 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/mediawiki"
 )
 
-func load_pages() map[string]uint32 {
+/*
+func test() {
+	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-page_props.sql.gz"
+	client := retryablehttp.NewClient()
+	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
+		req.Header.Set("User-Agent", "aaa")
+	}
+	err := mediawiki.Process(context.Background(), &mediawiki.ProcessConfig[map[string]interface{}]{
+		URL:    url,
+		Client: client,
+		Process: func(ctx context.Context, page map[string]interface{}) errors.E {
+			if page["pp_propname"].(string) == "displaytitle" {
+				//fmt.Println(page["pp_value"].(string))
+			}
+			return nil
+		},
+		FileType:    mediawiki.SQLDump,
+		Compression: mediawiki.GZIP,
+	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+*/
+
+func load_pages() (map[string]uint32, map[uint32]string) {
 	pagesMutex := sync.Mutex{}
 	//url := "https://wikimedia.bringyour.com/simplewiki/20231101/simplewiki-20231101-page.sql.gz"
 	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-page.sql.gz"
@@ -23,14 +50,19 @@ func load_pages() map[string]uint32 {
 		req.Header.Set("User-Agent", "aaa")
 	}
 	pages := make(map[string]uint32, 0)
+	pages_reverse := make(map[uint32]string, 0)
 
 	err := mediawiki.Process(context.Background(), &mediawiki.ProcessConfig[map[string]interface{}]{
 		URL:    url,
 		Client: client,
 		Process: func(ctx context.Context, page map[string]interface{}) errors.E {
 			if page["page_namespace"].(float64) == 0.00 && page["page_is_redirect"].(float64) == 0.00 {
+				if len(page["page_title"].(string)) == 0 {
+					return nil
+				}
 				pagesMutex.Lock()
 				pages[page["page_title"].(string)] = uint32(page["page_id"].(float64))
+				pages_reverse[uint32(page["page_id"].(float64))] = page["page_title"].(string)
 				pagesMutex.Unlock()
 			}
 			return nil
@@ -43,16 +75,16 @@ func load_pages() map[string]uint32 {
 		fmt.Println(err)
 	}
 
-	return pages
+	return pages, pages_reverse
 }
 
-func load_page_links(pages *map[string]uint32) map[uint32][]uint32 {
+func load_page_links(pages *map[string]uint32, pages_reverse *map[uint32]string) map[uint32][]uint32 {
 	linkMutex := sync.Mutex{}
 	//url := "https://wikimedia.bringyour.com/simplewiki/20231101/simplewiki-20231101-pagelinks.sql.gz"
 	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-pagelinks.sql.gz"
 	client := retryablehttp.NewClient()
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
-		req.Header.Set("User-Agent", "aaa")
+		req.Header.Set("User-Agent", "kjj")
 	}
 
 	links := make(map[uint32][]uint32, 0)
@@ -62,15 +94,17 @@ func load_page_links(pages *map[string]uint32) map[uint32][]uint32 {
 		Client: client,
 		Process: func(ctx context.Context, page map[string]interface{}) errors.E {
 			if page["pl_namespace"].(float64) == 0.00 && page["pl_from_namespace"].(float64) == 0.00 {
-				linkMutex.Lock()
 				from_id := uint32(page["pl_from"].(float64))
 				to_string := page["pl_title"].(string)
-				if (*pages)[to_string] == 0 {
+
+				_, fromFound := (*pages_reverse)[from_id]
+
+				foundPage, exists := (*pages)[to_string]
+				if exists && fromFound {
+					linkMutex.Lock()
+					links[from_id] = append(links[from_id], foundPage)
 					linkMutex.Unlock()
-					return nil
 				}
-				links[from_id] = append(links[from_id], (*pages)[to_string])
-				linkMutex.Unlock()
 			}
 			return nil
 		},
@@ -81,41 +115,42 @@ func load_page_links(pages *map[string]uint32) map[uint32][]uint32 {
 }
 
 type BinaryOutput struct {
-	data    []byte
-	size    int
-	counter int
+	data []byte
 }
 
-func NewBinaryOutput(ints int) BinaryOutput {
+func NewBinaryOutput() BinaryOutput {
 	output := BinaryOutput{}
-	output.AllocateInts(ints)
 	return output
 }
 
-func (output *BinaryOutput) AllocateInts(ints int) {
-	var placeholder uint32
-	output.size = binary.Size(placeholder) * ints
-	output.data = make([]byte, output.size)
+func (output *BinaryOutput) AddUint32(value uint32) {
+	output.data = binary.LittleEndian.AppendUint32(output.data, value)
 }
 
-func (output *BinaryOutput) AddUint32(value uint32) {
-	if output.counter >= output.size {
-		return
+func WriteString(s string) []byte {
+	result := make([]byte, 0)
+	utf := make([]byte, 0)
+	for _, c := range s {
+		utf = utf8.AppendRune(utf, c)
 	}
-	binary.LittleEndian.PutUint32(output.data[output.counter:], value)
-	output.counter = output.counter + binary.Size(value)
+
+	result = binary.LittleEndian.AppendUint32(result, uint32(len(utf)))
+	return append(result, utf...)
+}
+
+func (output *BinaryOutput) AddString(value string) {
+	output.data = append(output.data, WriteString(value)...)
 }
 
 func main() {
 	file, _ := os.Create("data.bin")
 	defer file.Close()
 
-	pages := load_pages()
-	links := load_page_links(&pages)
-	bytes := NewBinaryOutput(1)
+	pages, pages_reverse := load_pages()
+	links := load_page_links(&pages, &pages_reverse)
+	bytes := NewBinaryOutput()
 
 	bytes.AddUint32(uint32(len(links)))
-
 	n, err := file.Write(bytes.data)
 	if n != len(bytes.data) {
 		log.Fatal("Failed to write bytes!")
@@ -125,8 +160,16 @@ func main() {
 	}
 
 	for from, to := range links {
-		bytes := NewBinaryOutput(len(to) + 2)
+		title := pages_reverse[from]
+		//fmt.Println(from)
+		//fmt.Println(title)
+		//fmt.Println(len(to))
+
+		bytes := NewBinaryOutput()
 		bytes.AddUint32(from)
+
+		bytes.AddString(title)
+
 		bytes.AddUint32(uint32(len(to)))
 
 		for _, link := range to {
@@ -141,4 +184,5 @@ func main() {
 			log.Println(err)
 		}
 	}
+
 }

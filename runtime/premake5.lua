@@ -64,39 +64,11 @@ project "cpr"
     {
         "vendor/curl/include",
         "vendor/cpr/include",
-        "vendor/cpr/include/custom",
     }
 
     files
     {
         "vendor/cpr/cpr/**.cpp"
-    }
-
-project "yaml-cpp"
-    kind "StaticLib"
-    language "C++"
-    cppdialect "C++20"
-    staticruntime "off"
-
-    outputdir = "%{cfg.buildcfg}"
-
-    targetdir ("build/bin/" .. outputdir)
-    objdir ("build/bin-int/" .. outputdir)
-
-    --symbols "on"
-    buildoptions {"-Werror", "-Wuninitialized"}
-
-    defines {"YAML_CPP_STATIC_DEFINE"}
-
-    includedirs
-    {
-        "vendor/yaml-cpp/include",
-    }
-
-    files
-    {
-        "vendor/yaml-cpp/src/**.cpp",
-        "vendor/yaml-cpp/src/**.h",
     }
 
     -- should be 14 probs
@@ -114,26 +86,26 @@ project "runtime"
     defines {"YAML_CPP_STATIC_DEFINE", "BUILDING_LIBCURL"}
 
     --symbols "on"
-    buildoptions {"-Werror", "-Wuninitialized"}
+    buildoptions {--[["-Werror",]] "-Wuninitialized", "-Wextra", "-march=native"}
 
     includedirs 
     {
-        "vendor/yaml-cpp/include",
         "vendor/curl/include",
         "vendor/cpr/include",
         "vendor/cpr/include/custom",
-        "vendor/json/include"
+        "vendor/json/include",
+        "vendor/levenshtein-sse",
+        "src/cpr"
     }
 
     -- normaliz, wdldap32
     links
     {
-        --"yaml-cpp",
         "Ws2_32",
         "Crypt32",
         "bcrypt",
         "cpr",
-        "curl",
+        "curl"
     }
 
     files 
