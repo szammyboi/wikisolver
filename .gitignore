@@ -1,0 +1,8 @@
+*.yaml
+*.exe
+*.bin
+runtime/build
+*.ninja
+*.ninja_log
+*.ninja_deps
+.vscode/

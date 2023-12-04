@@ -1,0 +1,18 @@
+[submodule "runtime/vendor/yaml-cpp"]
+	path = runtime/vendor/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "runtime/vendor/cpr"]
+	path = runtime/vendor/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "runtime/vendor/curl"]
+	path = runtime/vendor/curl
+	url = https://github.com/curl/curl.git
+[submodule "runtime/vendor/json"]
+	path = runtime/vendor/json
+	url = https://github.com/nlohmann/json.git
+[submodule "runtime/vendor/rapidfuzz-cpp"]
+	path = runtime/vendor/rapidfuzz-cpp
+	url = https://github.com/maxbachmann/rapidfuzz-cpp.git
+[submodule "runtime/vendor/levenshtein-sse"]
+	path = runtime/vendor/levenshtein-sse
+	url = https://github.com/addaleax/levenshtein-sse.git
