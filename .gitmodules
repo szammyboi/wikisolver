@@ -16,3 +16,9 @@
 [submodule "runtime/vendor/levenshtein-sse"]
 	path = runtime/vendor/levenshtein-sse
 	url = https://github.com/addaleax/levenshtein-sse.git
+[submodule "runtime/vendor/imgui"]
+	path = runtime/vendor/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "runtime/vendor/glfw"]
+	path = runtime/vendor/glfw
+	url = https://github.com/glfw/glfw.git

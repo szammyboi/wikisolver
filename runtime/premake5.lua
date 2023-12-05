@@ -71,6 +71,90 @@ project "cpr"
         "vendor/cpr/cpr/**.cpp"
     }
 
+project "glfw"
+	kind "StaticLib"
+	language "C"
+
+	outputdir = "%{cfg.buildcfg}"
+
+    targetdir ("build/bin/" .. outputdir)
+    objdir ("build/bin-int/" .. outputdir)
+
+	files
+	{
+		"vendor/glfw/include/GLFW/glfw3.h",
+		"vendor/glfw/include/GLFW/glfw3native.h",
+		"vendor/glfw/src/**.c",
+	}
+
+    systemversion "latest"
+    staticruntime "On"
+
+    defines
+    {
+        "_GLFW_WIN32",
+        "_CRT_SECURE_NO_WARNINGS"
+    }
+
+project "glad"
+    kind "StaticLib"
+    language "C"
+    staticruntime "off"
+
+    outputdir = "%{cfg.buildcfg}"
+
+    targetdir ("build/bin/" .. outputdir)
+    objdir ("build/bin-int/" .. outputdir)
+
+    files
+    {
+        "vendor/glad/include/glad/gl.h",
+        "vendor/glad/include/KHR/khrplatform.h",
+        "vendor/glad/src/gl.c"
+    }
+
+    includedirs
+    {
+        "vendor/glad/include"
+    }
+
+    systemversion "latest"
+
+project "imgui"
+	kind "StaticLib"
+	language "C++"
+
+	outputdir = "%{cfg.buildcfg}"
+
+    targetdir ("build/bin/" .. outputdir)
+    objdir ("build/bin-int/" .. outputdir)
+
+    includedirs 
+    {
+        "vendor/imgui",
+        "vendor/glad/include",
+        "vendor/glfw/include"
+    }
+
+	files
+	{
+        "vendor/imgui/*.cpp",
+		"vendor/imgui/backends/imgui_impl_glfw.cpp",
+		"vendor/imgui/backends/imgui_impl_opengl3.cpp",
+        "vendor/imgui/misc/cpp/**.cpp"
+	}
+
+    defines 
+    {
+        "_IMGUI_WIN32",
+		"_CRT_SECURE_NO_WARNINGS",
+        "IMGUI_IMPL_OPENGL_LOADER_GLAD"
+    }
+
+    systemversion "latest"
+    cppdialect "C++20"
+    staticruntime "On"
+
     -- should be 14 probs
 project "runtime"
     kind "ConsoleApp"
@@ -83,10 +167,10 @@ project "runtime"
     targetdir ("build/bin/" .. outputdir)
     objdir ("build/bin-int/" .. outputdir)
 
-    defines {"YAML_CPP_STATIC_DEFINE", "BUILDING_LIBCURL"}
+    defines {"BUILDING_LIBCURL"}
 
     --symbols "on"
-    buildoptions {--[["-Werror",]] "-Wuninitialized", "-Wextra", "-march=native"}
+    buildoptions {"-Werror", "-Wuninitialized", "-Wextra", "-march=native", "-Wno-return-type", "-Wno-sign-compare", "-Wno-missing-field-initializers"}
 
     includedirs 
     {
@@ -95,7 +179,12 @@ project "runtime"
         "vendor/cpr/include/custom",
         "vendor/json/include",
         "vendor/levenshtein-sse",
-        "src/cpr"
+        "src/cpr",
+        "vendor/glfw/include",
+        "vendor/glad/include",
+        "vendor/imgui",
+        "vendor/imgui/backends",
+        "vendor/imgui/misc/cpp"
     }
 
     -- normaliz, wdldap32
@@ -105,7 +194,12 @@ project "runtime"
         "Crypt32",
         "bcrypt",
         "cpr",
-        "curl"
+        "curl",
+        "opengl32",
+        "gdi32",
+        "imgui",
+        "glad",
+        "glfw",
     }
 
     files 

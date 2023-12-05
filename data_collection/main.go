@@ -15,35 +15,8 @@ import (
 	"gitlab.com/tozd/go/mediawiki"
 )
 
-/*
-func test() {
-	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-page_props.sql.gz"
-	client := retryablehttp.NewClient()
-	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
-		req.Header.Set("User-Agent", "aaa")
-	}
-	err := mediawiki.Process(context.Background(), &mediawiki.ProcessConfig[map[string]interface{}]{
-		URL:    url,
-		Client: client,
-		Process: func(ctx context.Context, page map[string]interface{}) errors.E {
-			if page["pp_propname"].(string) == "displaytitle" {
-				//fmt.Println(page["pp_value"].(string))
-			}
-			return nil
-		},
-		FileType:    mediawiki.SQLDump,
-		Compression: mediawiki.GZIP,
-	})
-
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-*/
-
 func load_pages() (map[string]uint32, map[uint32]string) {
 	pagesMutex := sync.Mutex{}
-	//url := "https://wikimedia.bringyour.com/simplewiki/20231101/simplewiki-20231101-page.sql.gz"
 	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-page.sql.gz"
 	client := retryablehttp.NewClient()
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
@@ -80,7 +53,6 @@ func load_pages() (map[string]uint32, map[uint32]string) {
 
 func load_page_links(pages *map[string]uint32, pages_reverse *map[uint32]string) map[uint32][]uint32 {
 	linkMutex := sync.Mutex{}
-	//url := "https://wikimedia.bringyour.com/simplewiki/20231101/simplewiki-20231101-pagelinks.sql.gz"
 	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-pagelinks.sql.gz"
 	client := retryablehttp.NewClient()
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
