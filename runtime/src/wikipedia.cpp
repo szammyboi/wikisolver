@@ -283,7 +283,7 @@ std::vector<const Article*> WikipediaSolver::FindPathIDDFSImpl(uint32_t from, ui
    return std::vector<const Article*>();
 }
 
-
+// https://en.wikipedia.org/wiki/Iterative_deepening_depth-first_search -> Pseudocode
 // Static Function to Run the IDDFS
 std::vector<const Article*> WikipediaSolver::FindPathIDDFS(const std::string& from, const std::string& to)
 {
