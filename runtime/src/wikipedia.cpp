@@ -167,7 +167,6 @@ std::vector<const Article*> WikipediaSolver::FindPathBFSImpl(uint32_t from, uint
                 break;
             }
 
-
             // Add each link of the current vertex to the queue
             // Add where it came from to the backtrack map
 			for (uint32_t link : m_Graph[current].links)
@@ -183,7 +182,7 @@ std::vector<const Article*> WikipediaSolver::FindPathBFSImpl(uint32_t from, uint
 
     if (!found) return path;
 
-    // Use the backtrack array to retrace the BFS' steps
+    // Use the backtrack map to retrace the BFS' steps
     // And insert the path into a vector (in reverse)
     path.resize(depth);
     uint32_t current = to;
@@ -218,35 +217,45 @@ std::vector<const Article*> WikipediaSolver::FindPathBFS(const std::string& from
 std::vector<const Article*> WikipediaSolver::DepthLimitedSearch(uint32_t from, uint32_t to, int limit)
 {
     std::vector<const Article*> result;
+
     bool found = false;
-    std::stack<uint32_t> queue;
+    std::stack<uint32_t> stack;
     std::vector<bool> visited(m_MaxID+1);
+
+    // Keeps track of a vertex's depth and previous vertex (for backtracking)
     std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> info;
 
-    queue.push(from);
+    // Simple DFS algorithm on a graph
+    // Start at from and add each child to a stack
+    // Pull the top and repeat
+    // However, if a vertex that's being added is too deep, it will not be appended
+    stack.push(from);
     visited[from] = true;
     info[from] = {0, 0};
 
-    while (!queue.empty())
+    while (!stack.empty())
     {
-        uint32_t c = queue.top();
-        queue.pop();
+        uint32_t current = stack.top();
+        stack.pop();
 
-        if (c == to) {
+        if (current == to) {
             found = true;
             break;
         }
 
-        for (uint32_t link : m_Graph[c].links)
+        for (uint32_t link : m_Graph[current].links)
         {
-            if (!visited[link] && info[c].first+1 <limit) {
-                queue.push(link);
+            // If the vertex is unvisited and not too deep, add it to the stack
+            if (!visited[link] && info[current].first+1 <limit) {
+                stack.push(link);
                 visited[link] = 1;
-                info[link] = {info[c].first+1, c};
+                info[link] = {info[current].first+1, current};
             }
         }
     }
     
+    // Use the info map to retrace the BFS' steps
+    // And insert the path into a vector (in reverse)
     if (found) {
         result.resize(limit);
         uint32_t current = to;
@@ -263,6 +272,8 @@ std::vector<const Article*> WikipediaSolver::DepthLimitedSearch(uint32_t from, u
 // Implementation of the IDDFS Algorithm
 std::vector<const Article*> WikipediaSolver::FindPathIDDFSImpl(uint32_t from, uint32_t to)
 {
+    // Increase the limit and call a DFS up to that limit each iteration
+    // Max depth is 10
     for (int i = 0; i < 10; i++)
     {
         auto res = DepthLimitedSearch(from, to, i);
@@ -290,59 +301,3 @@ std::vector<const Article*> WikipediaSolver::FindPathIDDFS(const std::string& fr
     // Call the IDDFS impl on the two closest articles
     return instance.FindPathIDDFSImpl(from_results[0]->id, to_results[0]->id);
 }
-
-
-/*
-
-std::vector<const Article*> path;
-
-    bool found = false;
-    const int max_depth = 10;
-    int found_depth = 0;
-
-    for (int limit = 1; limit < max_depth; limit++)
-    {
-        std::stack<uint32_t> queue;
-        std::vector<bool> visited(m_MaxID+1);
-        std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> info;
-
-        queue.push(from);
-        visited[from] = 1;
-        info[from] = {limit, 0};
-
-        while (!queue.empty() && !found)
-        {
-            uint32_t current = queue.top();
-            //std::cout << m_Graph[current].title << std::endl;
-            queue.pop();
-
-            if (current == to) 
-            {
-                found_depth = limit-(info[current].first)+1;
-                found = true;
-                break;
-            }
-
-            for (uint32_t link : m_Graph[current].links)
-            {
-                if (visited[link] || info[current].first == 0) continue;
-                queue.push(link);
-                visited[link] = true;
-                info[link] = {info[current].first-1, current};
-            }
-        }
-
-
-        if (found) {
-            path.resize(found_depth);
-            uint32_t current = to;
-            for (int i = 1; i <= found_depth; i++)
-            {   
-                path[found_depth-i] = &m_Graph.at(current);
-                current = info[current].second;
-            }
-            break;
-        }
-    }
-
-*/
