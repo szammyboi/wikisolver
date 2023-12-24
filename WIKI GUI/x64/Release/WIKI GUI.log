@@ -1,0 +1,31 @@
+﻿  WIKI GUI.cpp
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(138,38): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(142,44): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(154,50): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(162,51): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(205,102): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(205,81): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(209,108): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\ejobm\source\repos\WIKI GUI\WIKI GUI\WIKI GUI.cpp(209,87): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+  Generating code
+  1 of 303 functions ( 0.3%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  WIKI GUI.vcxproj -> C:\Users\ejobm\source\repos\WIKI GUI\x64\Release\WIKI GUI.exe
