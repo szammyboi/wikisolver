@@ -20,7 +20,7 @@ func load_pages() (map[string]uint32, map[uint32]string) {
 	pagesMutex := sync.Mutex{}
 
 	// Client to get the SQL table
-	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-page.sql.gz"
+	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20240501/simplewiki-20240501-page.sql.gz"
 	client := retryablehttp.NewClient()
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		req.Header.Set("User-Agent", "WikiSolver")
@@ -69,7 +69,7 @@ func load_page_links(pages *map[string]uint32, pages_reverse *map[uint32]string)
 	linkMutex := sync.Mutex{}
 
 	// Client to get the SQL table
-	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20231101/simplewiki-20231101-pagelinks.sql.gz"
+	url := "https://mirror.accum.se/mirror/wikimedia.org/dumps/simplewiki/20240501/simplewiki-20240501-pagelinks.sql.gz"
 	client := retryablehttp.NewClient()
 	client.RequestLogHook = func(logger retryablehttp.Logger, req *http.Request, retry int) {
 		req.Header.Set("User-Agent", "WikiSolver")
